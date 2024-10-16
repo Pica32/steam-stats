@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Frame</title>
+    <style>
+        body {
+            background-color: #1b1b1b;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #frame {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #282828;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 800px;
+        }
+        .highlight {
+            color: #FFD700; /* Yellow text */
+        }
+        .game {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+        .game img {
+            width: 64px;
+            height: 64px;
+        }
+        .game p {
+            margin: 0;
+            padding: 5px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div id="frame">
+        <h1 id="accountName" class="highlight">Account Name</h1>
+        <p id="totalHours" class="highlight">Total hours: 0</p>
+        <p id="steamSince" class="highlight">Steam since: XXXX</p>
+        <div id="games"></div>
+    </div>
+
+    <script>
+        const apiKey = 'AD2A59088D9710B4817756BA30AD1F0C';
+        const steamId = '76561198017914494'; // SteamID64
+
+        async function getPlayerSummaries() {
+            const url = `http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${apiKey}&steamids=${steamId}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.response.players[0];
+        }
+
+        async function getTopPlayedGames() {
+            const url = `http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${apiKey}&steamid=${steamId}&include_appinfo=1&include_played_free_games=1`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.response.games;
+        }
+
+        async function displaySteamData() {
+            const playerSummary = await getPlayerSummaries();
+            const games = await getTopPlayedGames();
+
+            // Update Account Information
+            document.getElementById('accountName').innerText = playerSummary.personaname;
+            document.getElementById('steamSince').innerHTML = `Steam since: <span class="highlight">${new Date(playerSummary.timecreated * 1000).toDateString()}</span>`;
+
+            // Calculate total hours
+            const totalHours = games.reduce((acc, game) => acc + game.playtime_forever, 0) / 60;
+            document.getElementById('totalHours').innerHTML = `Total hours: <span class="highlight">${totalHours.toFixed(2)}</span> hours`;
+
+            // Display top games
+            const gamesContainer = document.getElementById('games');
+            const topGames = games.sort((a, b) => b.playtime_forever - a.playtime_forever).slice(0, 5);
+            gamesContainer.innerHTML = ''; // Clear any previous entries
+            topGames.forEach(game => {
+                gamesContainer.innerHTML += `
+                    <div class="game">
+                        <img src="https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/header.jpg" alt="${game.name}">
+                        <p class="game-title">${game.name}</p>
+                        <p class="game-hours">${(game.playtime_forever / 60).toFixed(2)} hrs</p>
+                    </div>
+                `;
+            });
+        }
+
+        displaySteamData();
+    </script>
+</body>
+</html>
